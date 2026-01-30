@@ -129,12 +129,57 @@ const Dashboard: React.FC = () => {
         }
     };
 
+    const [scanProgress, setScanProgress] = useState<{ total: number; file: string } | null>(null);
+
     const handleScanDirectory = async (id: number) => {
         try {
-            await api.post(`/scan/${id}`);
-            alert('Scan started in background');
+            setScanProgress({ total: 0, file: 'Starting scan...' });
+
+            // Use native fetch to handle streaming response
+            const token = localStorage.getItem('token');
+            const baseURL = (localStorage.getItem('backend_url') || 'http://127.0.0.1:8000').replace(/\/$/, '');
+            const response = await fetch(`${baseURL}/scan/${id}`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!response.ok) throw new Error('Scan failed');
+            if (!response.body) throw new Error('No response body');
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n');
+                buffer = lines.pop() || ''; // Keep the incomplete line in buffer
+
+                for (const line of lines) {
+                    if (!line.trim()) continue;
+                    try {
+                        const data = JSON.parse(line);
+                        if (data.type === 'progress') {
+                            setScanProgress({ total: data.count, file: data.file });
+                        } else if (data.type === 'complete') {
+                            setScanProgress(null);
+                            alert(`Scan complete! Scanned: ${data.total_scanned}, Added: ${data.added}, Deleted: ${data.deleted}`);
+                            fetchFiles();
+                        }
+                    } catch (e) {
+                        console.error('Error parsing JSON line', e);
+                    }
+                }
+            }
         } catch (err: any) {
-            alert('Error starting scan');
+            console.error(err);
+            alert('Error scanning directory');
+            setScanProgress(null);
         }
     };
 
@@ -334,7 +379,14 @@ const Dashboard: React.FC = () => {
                                     <tr key={d.id}>
                                         <td style={{ wordBreak: 'break-all' }}>{d.path}</td>
                                         <td>
-                                            <button className="btn-primary" style={{ marginRight: '0.5rem', padding: '0.25rem 0.5rem', fontSize: '0.8rem' }} onClick={() => handleScanDirectory(d.id)}>Rescan</button>
+                                            <button
+                                                className="btn-primary"
+                                                style={{ marginRight: '0.5rem', padding: '0.25rem 0.5rem', fontSize: '0.8rem' }}
+                                                onClick={() => handleScanDirectory(d.id)}
+                                                disabled={scanProgress !== null}
+                                            >
+                                                {scanProgress !== null ? 'Scanning...' : 'Rescan'}
+                                            </button>
                                             <button className="btn-danger" style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem' }} onClick={() => handleDeleteDirectory(d.id)}>Remove</button>
                                         </td>
                                     </tr>
@@ -342,6 +394,17 @@ const Dashboard: React.FC = () => {
                                 {directories.length === 0 && <tr><td colSpan={2}>No directories configured</td></tr>}
                             </tbody>
                         </table>
+
+                        {scanProgress && (
+                            <div style={{ marginTop: '1rem', background: '#f3f4f6', padding: '0.5rem', borderRadius: '4px' }}>
+                                <strong>Scanning...</strong>
+                                <div style={{ fontSize: '0.9rem', color: '#555' }}>Parsed Files: {scanProgress.total}</div>
+                                <div style={{ fontSize: '0.8rem', color: '#777', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Current: {scanProgress.file}</div>
+                                <div style={{ width: '100%', height: '4px', background: '#e5e7eb', marginTop: '5px', borderRadius: '2px' }}>
+                                    <div style={{ width: '100%', height: '100%', background: '#6366f1', borderRadius: '2px', animation: 'pulse 1.5s infinite' }}></div>
+                                </div>
+                            </div>
+                        )}
 
                         <div className="modal-actions">
                             <button className="btn-secondary" onClick={() => setShowDirModal(false)} style={{ background: '#9ca3af', border: 'none', padding: '0.5rem 1rem', borderRadius: '6px', color: 'white', cursor: 'pointer' }}>Close</button>

@@ -174,11 +174,16 @@ async def delete_files_bulk(request: DeleteFilesRequest, current_user: User = De
     session.commit()
     return {"deleted_count": deleted_count}
 
+from fastapi.responses import StreamingResponse
+from .scanner import scan_directory, scan_directory_generator
+
 @app.post("/scan/{dir_id}")
-async def rescan_directory(dir_id: int, background_tasks: BackgroundTasks, current_user: User = Depends(get_current_user), session: Session = Depends(get_session)):
+async def rescan_directory(dir_id: int, current_user: User = Depends(get_current_user), session: Session = Depends(get_session)):
     dir_config = session.get(DirectoryConfig, dir_id)
     if not dir_config:
         raise HTTPException(status_code=404, detail="Directory not found")
         
-    background_tasks.add_task(scan_directory, dir_config.path, session, dir_id)
-    return {"message": "Scan started"}
+    return StreamingResponse(
+        scan_directory_generator(dir_config.path, session, dir_id),
+        media_type="application/x-ndjson"
+    )
