@@ -28,6 +28,12 @@ const Dashboard: React.FC = () => {
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
     const [selectedFiles, setSelectedFiles] = useState<Set<number>>(new Set());
     const [directoryFilter, setDirectoryFilter] = useState('');
+    const [showLogModal, setShowLogModal] = useState(false);
+    const [logs, setLogs] = useState('');
+    const [showHistoryModal, setShowHistoryModal] = useState(false);
+    const [historyLogs, setHistoryLogs] = useState<any[]>([]);
+    const [selectedHistoryItem, setSelectedHistoryItem] = useState<any | null>(null);
+    const [historyDetails, setHistoryDetails] = useState<any[]>([]);
 
     // Pagination
     const [page, setPage] = useState(1);
@@ -111,10 +117,15 @@ const Dashboard: React.FC = () => {
 
     const handleAddDirectory = async () => {
         try {
-            await api.post('/directories/', { path: newDirPath });
+            const res = await api.post('/directories/', { path: newDirPath });
             setNewDirPath('');
-            setShowDirModal(false);
-            fetchDirectories();
+            // setShowDirModal(false); // Keep modal open
+            await fetchDirectories(); // Refresh list to show new dir
+
+            // Trigger scan immediately
+            if (res.data && res.data.id) {
+                handleScanDirectory(res.data.id);
+            }
         } catch (err: any) {
             alert('Failed to add directory: ' + (err.response?.data?.detail || err.message));
         }
@@ -130,6 +141,50 @@ const Dashboard: React.FC = () => {
             alert('Error deleting directory');
         }
     };
+
+    const fetchLogs = async () => {
+        try {
+            const res = await api.get('/logs');
+            setLogs(res.data.logs);
+        } catch (err) {
+            setLogs('Failed to fetch logs');
+        }
+    };
+
+    const fetchHistory = async () => {
+        try {
+            const res = await api.get('/audit/deletions');
+            setHistoryLogs(res.data);
+        } catch (err) {
+            console.error('Failed to fetch history', err);
+        }
+    };
+
+    const fetchHistoryDetails = async (logId: number) => {
+        try {
+            const res = await api.get(`/audit/deletions/${logId}/items`);
+            setHistoryDetails(res.data);
+            const log = historyLogs.find(l => l.id === logId);
+            setSelectedHistoryItem(log);
+        } catch (err) {
+            console.error('Failed to fetch history details', err);
+        }
+    };
+
+    useEffect(() => {
+        if (showHistoryModal) {
+            fetchHistory();
+        }
+    }, [showHistoryModal]);
+
+    useEffect(() => {
+        if (showLogModal) {
+            fetchLogs();
+            // Auto refresh every 5 seconds while open
+            const interval = setInterval(fetchLogs, 5000);
+            return () => clearInterval(interval);
+        }
+    }, [showLogModal]);
 
     const [scanProgress, setScanProgress] = useState<{ total: number; file: string } | null>(null);
 
@@ -234,7 +289,10 @@ const Dashboard: React.FC = () => {
         <div className="dashboard-container">
             <div className="header">
                 <h2>Dashboard</h2>
+                <h2>Dashboard</h2>
                 <div style={{ display: 'flex', alignItems: 'center' }}>
+                    <button className="btn-secondary" style={{ marginRight: '1rem', background: '#e5e7eb', color: '#374151', border: '1px solid #d1d5db' }} onClick={() => setShowLogModal(true)}>System Logs</button>
+                    <button className="btn-secondary" style={{ marginRight: '1rem', background: '#e5e7eb', color: '#374151', border: '1px solid #d1d5db' }} onClick={() => setShowHistoryModal(true)}>Deletion History</button>
                     <button className="btn-primary" style={{ marginRight: '1rem' }} onClick={() => setShowDirModal(true)}>Manage Directories</button>
                     <button className="btn-danger" onClick={handleLogout}>Logout</button>
                 </div>
@@ -344,7 +402,10 @@ const Dashboard: React.FC = () => {
                 </table>
 
                 {/* Pagination Controls Bottom */}
-                <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'center' }}>
+                <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '1rem' }}>
+                    {selectedFiles.size > 0 && (
+                        <button className="btn-danger" onClick={handleBulkDelete}>Delete Selected ({selectedFiles.size})</button>
+                    )}
                     <button
                         className="btn-secondary"
                         disabled={page <= 1}
@@ -420,6 +481,86 @@ const Dashboard: React.FC = () => {
 
                         <div className="modal-actions">
                             <button className="btn-secondary" onClick={() => setShowDirModal(false)} style={{ background: '#9ca3af', border: 'none', padding: '0.5rem 1rem', borderRadius: '6px', color: 'white', cursor: 'pointer' }}>Close</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {showLogModal && (
+                <div className="modal-overlay">
+                    <div className="modal" style={{ maxWidth: '800px', width: '90%' }}>
+                        <h3>System Logs</h3>
+                        <div style={{
+                            background: '#1f2937',
+                            color: '#e5e7eb',
+                            padding: '1rem',
+                            borderRadius: '4px',
+                            height: '400px',
+                            overflowY: 'auto',
+                            whiteSpace: 'pre-wrap',
+                            fontFamily: 'monospace',
+                            fontSize: '0.9rem',
+                            marginBottom: '1rem'
+                        }}>
+                            {logs || 'Loading logs...'}
+                        </div>
+                        <div className="modal-actions" style={{ justifyContent: 'space-between' }}>
+                            <button className="btn-secondary" onClick={fetchLogs} style={{ background: '#6366f1', color: 'white', border: 'none', padding: '0.5rem 1rem', borderRadius: '6px', cursor: 'pointer' }}>Refresh Now</button>
+                            <button className="btn-secondary" onClick={() => setShowLogModal(false)} style={{ background: '#9ca3af', border: 'none', padding: '0.5rem 1rem', borderRadius: '6px', color: 'white', cursor: 'pointer' }}>Close</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {showHistoryModal && (
+                <div className="modal-overlay">
+                    <div className="modal" style={{ maxWidth: '900px', width: '90%', height: '80vh', display: 'flex', flexDirection: 'column' }}>
+                        <h3>Deletion History</h3>
+                        <div style={{ display: 'flex', flex: 1, overflow: 'hidden', gap: '1rem' }}>
+                            <div style={{ flex: 1, overflowY: 'auto', borderRight: '1px solid #eee', paddingRight: '1rem' }}>
+                                <table className="file-table" style={{ width: '100%' }}>
+                                    <thead>
+                                        <tr>
+                                            <th>Time</th>
+                                            <th>User</th>
+                                            <th>Type</th>
+                                            <th>Count</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {historyLogs.map(log => (
+                                            <tr key={log.id} style={{ background: selectedHistoryItem?.id === log.id ? '#f3f4f6' : 'transparent' }}>
+                                                <td>{new Date(log.timestamp).toLocaleString()}</td>
+                                                <td>{log.username}</td>
+                                                <td>{log.action_type}</td>
+                                                <td>{log.file_count}</td>
+                                                <td>
+                                                    <button onClick={() => fetchHistoryDetails(log.id)} style={{ padding: '0.25rem 0.5rem', fontSize: '0.8rem', cursor: 'pointer' }}>View Files</button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div style={{ flex: 1, overflowY: 'auto', background: '#f9fafb', padding: '1rem', borderRadius: '4px' }}>
+                                <h4>Deleted Files {selectedHistoryItem ? `(Log #${selectedHistoryItem.id})` : ''}</h4>
+                                {selectedHistoryItem ? (
+                                    <ul style={{ listStyle: 'none', padding: 0 }}>
+                                        {historyDetails.map(item => (
+                                            <li key={item.id} style={{ padding: '0.25rem 0', borderBottom: '1px solid #eee', fontSize: '0.9rem' }}>
+                                                <div style={{ fontWeight: 'bold' }}>{item.filename}</div>
+                                                <div style={{ color: '#666', fontSize: '0.8rem' }}>{item.full_path}</div>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                ) : (
+                                    <p style={{ color: '#666' }}>Select a deletion record to view affected files.</p>
+                                )}
+                            </div>
+                        </div>
+                        <div className="modal-actions" style={{ marginTop: '1rem' }}>
+                            <button className="btn-secondary" onClick={() => setShowHistoryModal(false)} style={{ background: '#9ca3af', border: 'none', padding: '0.5rem 1rem', borderRadius: '6px', color: 'white', cursor: 'pointer' }}>Close</button>
                         </div>
                     </div>
                 </div>

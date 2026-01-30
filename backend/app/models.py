@@ -33,3 +33,19 @@ class DeleteFilesRequest(SQLModel):
 
 class CreateDirectoryRequest(SQLModel):
     path: str
+
+class DeletionLog(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="user.id")
+    username: str
+    action_type: str  # "single", "bulk", "directory"
+    target_path: Optional[str] = None # For single/directory delete
+    file_count: int
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+
+class DeletionLogItem(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    deletion_log_id: int = Field(foreign_key="deletionlog.id")
+    filename: str
+    full_path: str
+    size_bytes: int
