@@ -5,11 +5,14 @@ import { useNavigate } from 'react-router-dom';
 const Login: React.FC = () => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
+    const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const navigate = useNavigate();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setLoading(true);
+        setError('');
         try {
             const formData = new FormData();
             formData.append('username', username);
@@ -18,18 +21,23 @@ const Login: React.FC = () => {
             const response = await api.post('/token', formData);
             localStorage.setItem('token', response.data.access_token);
             navigate('/dashboard');
-        } catch (err) {
-            setError('Invalid credentials or connection error');
+        } catch (err: any) {
+            console.error("Login error:", err);
+            const msg = err.response?.data?.detail || err.message || 'Invalid credentials or connection error';
+            setError(msg);
+        } finally {
+            setLoading(false);
         }
     };
 
     const [showSettings, setShowSettings] = useState(false);
-    const [backendUrl, setBackendUrl] = useState(localStorage.getItem('backend_url') || 'http://localhost:8000');
+    const [backendUrl, setBackendUrl] = useState(localStorage.getItem('backend_url') || 'http://127.0.0.1:8000');
 
     const handleSaveSettings = () => {
-        localStorage.setItem('backend_url', backendUrl);
-        setShowSettings(false);
-        setError('Settings saved. Try logging in.');
+        const cleanUrl = backendUrl.replace(/\/$/, '');
+        localStorage.setItem('backend_url', cleanUrl);
+        // Force reload of api base url configuration if possible, or just expect reload
+        window.location.reload();
     };
 
     return (
@@ -48,6 +56,7 @@ const Login: React.FC = () => {
                                     value={username}
                                     onChange={(e) => setUsername(e.target.value)}
                                     required
+                                    disabled={loading}
                                 />
                             </div>
                             <div className="form-group">
@@ -57,9 +66,12 @@ const Login: React.FC = () => {
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
                                     required
+                                    disabled={loading}
                                 />
                             </div>
-                            <button type="submit" className="btn-primary" style={{ marginBottom: '1rem' }}>Login</button>
+                            <button type="submit" className="btn-primary" style={{ marginBottom: '1rem', width: '100%' }} disabled={loading}>
+                                {loading ? 'Logging in...' : 'Login'}
+                            </button>
                         </form>
                         <button
                             className="btn-secondary"
@@ -78,10 +90,10 @@ const Login: React.FC = () => {
                                 type="text"
                                 value={backendUrl}
                                 onChange={(e) => setBackendUrl(e.target.value)}
-                                placeholder="http://localhost:8000"
+                                placeholder="http://127.0.0.1:8000"
                             />
                         </div>
-                        <button className="btn-primary" onClick={handleSaveSettings} style={{ marginBottom: '0.5rem' }}>Save</button>
+                        <button className="btn-primary" onClick={handleSaveSettings} style={{ marginBottom: '0.5rem', width: '100%' }}>SaveAndReload</button>
                         <button
                             className="btn-secondary"
                             onClick={() => setShowSettings(false)}

@@ -109,7 +109,7 @@ const Dashboard: React.FC = () => {
 
     const handleAddDirectory = async () => {
         try {
-            await api.post('/directories/', null, { params: { path: newDirPath } });
+            await api.post('/directories/', { path: newDirPath });
             setNewDirPath('');
             setShowDirModal(false);
             fetchDirectories();
@@ -187,7 +187,7 @@ const Dashboard: React.FC = () => {
         <div className="dashboard-container">
             <div className="header">
                 <h2>Dashboard</h2>
-                <div>
+                <div style={{ display: 'flex', alignItems: 'center' }}>
                     <button className="btn-primary" style={{ marginRight: '1rem' }} onClick={() => setShowDirModal(true)}>Manage Directories</button>
                     <button className="btn-danger" onClick={handleLogout}>Logout</button>
                 </div>

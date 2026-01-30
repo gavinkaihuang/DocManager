@@ -30,3 +30,6 @@ class FilesResponse(SQLModel):
 
 class DeleteFilesRequest(SQLModel):
     file_ids: List[int]
+
+class CreateDirectoryRequest(SQLModel):
+    path: str

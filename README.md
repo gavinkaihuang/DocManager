@@ -1,64 +1,41 @@
 # File Management System
 
-A file management system that indexes files in specified directories, stores metadata in a database, and provides a web-based interface for management.
+A local file management system with scanning, indexing, filtering, and deletion capabilities.
 
-## Components
+## Tech Stack
+- **Backend**: FastAPI, SQLModel (SQLite), Python-Multipart, Python-Jose
+- **Frontend**: React, TypeScript, Vite
 
-- **Backend**: Python (FastAPI, SQLModel, SQLite)
-- **Frontend**: React (Vite, TypeScript, CSS)
+## Setup
 
-## How to Run
+1. **Backend**:
+   ```bash
+   cd backend
+   pip install -r requirements.txt
+   uvicorn app.main:app --reload
+   ```
+   Server runs at `http://localhost:8000`.
 
-### 1. Backend
+2. **Frontend**:
+   ```bash
+   cd frontend
+   npm install
+   npm run dev
+   ```
+   App runs at `http://localhost:5173`.
 
-1.  Navigate to the project root:
-    ```bash
-    cd /Users/gminihome/SourceCodes/DocMananger
-    ```
-2.  Install dependencies (if not already installed):
-    ```bash
-    pip install -r backend/requirements.txt
-    ```
-3.  Start the server:
-    ```bash
-    uvicorn backend.app.main:app --reload --port 8000
-    ```
+## Authentication
+- Default User: `admin`
+- Default Password: `admin`
 
-### 2. Frontend
+## Features
+- **Directory Management**: Add multiple directories to scan.
+- **Ignoring Files**: Create a `.docignore` file in the root of any scanned directory to exclude patterns (e.g., `*.tmp`, `node_modules`).
+- **File Operations**: Search, filter by extension, sort by size/name.
+- **Bulk Delete**: Select multiple files and delete them (removes from disk and database).
 
-1.  Navigate to the frontend directory:
-    ```bash
-    cd frontend
-    ```
-2.  Install dependencies:
-    ```bash
-    npm install
-    ```
-3.  Start the development server:
-    ```bash
-    npm run dev
-    ```
-
-### 3. Access
-
-Open your browser and navigate to: [http://localhost:5173](http://localhost:5173)
-
-**Default Credentials:**
-- **Username**: `admin`
-- **Password**: `admin`
-
-## Database Migration / Initialization
-
-The system uses **SQLite** (`file_manager.db`).
-
-### Automatic Initialization
-When you run the backend for the first time on a new system (`uvicorn backend.app.main:app ...`), it will **automatically**:
-1.  Create the `file_manager.db` file if it doesn't exist.
-2.  Create all necessary tables.
-3.  Create the default `admin` user.
-
-### Resetting the Database
-To start fresh (wipe all data):
-1.  Stop the backend server.
-2.  Delete the `file_manager.db` file found in the project root.
-3.  Restart the backend server. A new, empty database will be created.
+## Resetting the Database
+To completely reset the application state (users, directories, file index):
+1. Stop the backend server.
+2. Delete the `file_manager.db` file in the `backend` or root directory.
+3. Restart the backend server. It will automatically recreate the database and the default `admin` user.

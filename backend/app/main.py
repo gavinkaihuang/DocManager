@@ -5,7 +5,7 @@ from sqlmodel import Session, select
 from typing import List
 
 from .database import create_db_and_tables, get_session, engine
-from .models import User, DirectoryConfig, FileRecord
+from .models import User, DirectoryConfig, FileRecord, CreateDirectoryRequest
 from .auth import get_current_user, create_access_token, get_password_hash, verify_password, ACCESS_TOKEN_EXPIRE_MINUTES
 from .scanner import scan_directory
 from datetime import timedelta
@@ -57,7 +57,8 @@ async def read_users_me(current_user: User = Depends(get_current_user)):
 
 # Directory Management
 @app.post("/directories/")
-async def add_directory(path: str, background_tasks: BackgroundTasks, current_user: User = Depends(get_current_user), session: Session = Depends(get_session)):
+async def add_directory(request: CreateDirectoryRequest, background_tasks: BackgroundTasks, current_user: User = Depends(get_current_user), session: Session = Depends(get_session)):
+    path = request.path
     if not os.path.isdir(path):
          raise HTTPException(status_code=400, detail="Invalid directory path")
     
@@ -94,7 +95,7 @@ async def delete_directory(dir_id: int, current_user: User = Depends(get_current
     session.commit()
     return {"ok": True}
 
-from .models import User, DirectoryConfig, FileRecord, FilesResponse, DeleteFilesRequest
+from .models import User, DirectoryConfig, FileRecord, FilesResponse, DeleteFilesRequest, CreateDirectoryRequest
 from sqlalchemy import func
 
 # ... (rest of imports)
