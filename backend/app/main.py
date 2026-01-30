@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, status, BackgroundTasks
+from fastapi import FastAPI, Depends, HTTPException, status, BackgroundTasks, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlmodel import Session, select
@@ -20,6 +20,13 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    # print(f"Incoming request: {request.method} {request.url}")
+    # print(f"Headers: {request.headers}")
+    response = await call_next(request)
+    return response
 
 @app.on_event("startup")
 def on_startup():
@@ -108,6 +115,7 @@ async def get_files(
     extension: str = None,
     sort_by: str = None,
     order: str = "asc",
+    directory_id: int = None,
     current_user: User = Depends(get_current_user), 
     session: Session = Depends(get_session)
 ):
@@ -116,6 +124,8 @@ async def get_files(
         conditions.append(FileRecord.filename.contains(search))
     if extension:
         conditions.append(FileRecord.extension == extension)
+    if directory_id:
+        conditions.append(FileRecord.directory_config_id == directory_id)
 
     # Count
     count_query = select(func.count()).select_from(FileRecord)

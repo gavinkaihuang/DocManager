@@ -27,6 +27,7 @@ const Dashboard: React.FC = () => {
     const [sortBy, setSortBy] = useState<string>('');
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
     const [selectedFiles, setSelectedFiles] = useState<Set<number>>(new Set());
+    const [directoryFilter, setDirectoryFilter] = useState('');
 
     // Pagination
     const [page, setPage] = useState(1);
@@ -47,7 +48,7 @@ const Dashboard: React.FC = () => {
             setSelectedFiles(new Set()); // Reset selection on filter change
         }, 500);
         return () => clearTimeout(delayDebounceFn);
-    }, [search, extensionFilter, sortBy, sortOrder]);
+    }, [search, extensionFilter, sortBy, sortOrder, directoryFilter]);
 
     useEffect(() => {
         fetchFiles(page);
@@ -73,6 +74,7 @@ const Dashboard: React.FC = () => {
                     extension: extensionFilter || undefined,
                     sort_by: sortBy || undefined,
                     order: sortOrder,
+                    directory_id: directoryFilter || undefined,
                     skip,
                     limit
                 }
@@ -255,6 +257,16 @@ const Dashboard: React.FC = () => {
                         onChange={(e) => setExtensionFilter(e.target.value)}
                         style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #ccc', width: '150px' }}
                     />
+                    <select
+                        value={directoryFilter}
+                        onChange={(e) => setDirectoryFilter(e.target.value)}
+                        style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #ccc', width: '200px' }}
+                    >
+                        <option value="">All Directories</option>
+                        {directories.map(d => (
+                            <option key={d.id} value={d.id}>{d.path}</option>
+                        ))}
+                    </select>
                 </div>
 
                 {/* Pagination Controls Top */}

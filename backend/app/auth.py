@@ -39,15 +39,19 @@ async def get_current_user(token: str = Depends(oauth2_scheme), session: Session
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
+        # print(f"Validating token: {token[:10]}...") 
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
         if username is None:
+            print("Token validation failed: No username in payload")
             raise credentials_exception
-    except JWTError:
+    except JWTError as e:
+        print(f"Token validation failed: {e}")
         raise credentials_exception
     
     statement = select(User).where(User.username == username)
     user = session.exec(statement).first()
     if user is None:
+        print(f"Token validation failed: User {username} not found")
         raise credentials_exception
     return user
