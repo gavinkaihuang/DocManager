@@ -1,0 +1,11 @@
+# System
+.DS_Store
+.git
+.venv
+__pycache__
+*.pyc
+
+# Logs and DB
+*.log
+file_manager.log
+file_manager.db

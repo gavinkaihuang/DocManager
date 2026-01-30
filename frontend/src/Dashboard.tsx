@@ -28,6 +28,8 @@ const Dashboard: React.FC = () => {
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
     const [selectedFiles, setSelectedFiles] = useState<Set<number>>(new Set());
     const [directoryFilter, setDirectoryFilter] = useState('');
+    const [minSize, setMinSize] = useState('');
+    const [maxSize, setMaxSize] = useState('');
     const [showLogModal, setShowLogModal] = useState(false);
     const [logs, setLogs] = useState('');
     const [showHistoryModal, setShowHistoryModal] = useState(false);
@@ -54,7 +56,7 @@ const Dashboard: React.FC = () => {
             setSelectedFiles(new Set()); // Reset selection on filter change
         }, 500);
         return () => clearTimeout(delayDebounceFn);
-    }, [search, extensionFilter, sortBy, sortOrder, directoryFilter]);
+    }, [search, extensionFilter, sortBy, sortOrder, directoryFilter, minSize, maxSize]);
 
     useEffect(() => {
         fetchFiles(page);
@@ -81,6 +83,8 @@ const Dashboard: React.FC = () => {
                     sort_by: sortBy || undefined,
                     order: sortOrder,
                     directory_id: directoryFilter || undefined,
+                    min_size: minSize ? parseInt(minSize) * 1024 * 1024 : undefined, // Convert MB to bytes
+                    max_size: maxSize ? parseInt(maxSize) * 1024 * 1024 : undefined, // Convert MB to bytes
                     skip,
                     limit
                 }
@@ -325,6 +329,20 @@ const Dashboard: React.FC = () => {
                             <option key={d.id} value={d.id}>{d.path}</option>
                         ))}
                     </select>
+                    <input
+                        type="number"
+                        placeholder="Min Size (MB)"
+                        value={minSize}
+                        onChange={(e) => setMinSize(e.target.value)}
+                        style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #ccc', width: '120px' }}
+                    />
+                    <input
+                        type="number"
+                        placeholder="Max Size (MB)"
+                        value={maxSize}
+                        onChange={(e) => setMaxSize(e.target.value)}
+                        style={{ padding: '0.5rem', borderRadius: '4px', border: '1px solid #ccc', width: '120px' }}
+                    />
                 </div>
 
                 {/* Pagination Controls Top */}

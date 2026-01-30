@@ -135,6 +135,8 @@ async def get_files(
     sort_by: str = None,
     order: str = "asc",
     directory_id: int = None,
+    min_size: int = None,
+    max_size: int = None,
     current_user: User = Depends(get_current_user), 
     session: Session = Depends(get_session)
 ):
@@ -145,6 +147,10 @@ async def get_files(
         conditions.append(FileRecord.extension == extension)
     if directory_id:
         conditions.append(FileRecord.directory_config_id == directory_id)
+    if min_size is not None:
+        conditions.append(FileRecord.size_bytes >= min_size)
+    if max_size is not None:
+        conditions.append(FileRecord.size_bytes <= max_size)
 
     # Count
     count_query = select(func.count()).select_from(FileRecord)
