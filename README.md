@@ -39,3 +39,14 @@ To completely reset the application state (users, directories, file index):
 1. Stop the backend server.
 2. Delete the `file_manager.db` file in the `backend` or root directory.
 3. Restart the backend server. It will automatically recreate the database and the default `admin` user.
+
+Step 1: Start Backend
+
+cd backend
+source ../.venv/bin/activate  # If using a virtual environment
+uvicorn app.main:app --reload
+
+Step 2:Start Frontend
+
+cd frontend
+npm run dev
