@@ -40,7 +40,7 @@ const Dashboard: React.FC = () => {
     // Pagination
     const [page, setPage] = useState(1);
     const [total, setTotal] = useState(0);
-    const limit = 150;
+    const limit = 300;
 
     const navigate = useNavigate();
 
@@ -284,6 +284,93 @@ const Dashboard: React.FC = () => {
         return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     };
 
+    // Pagination Helper
+    const renderPagination = () => {
+        const pages = [];
+        const showEllipsisStart = page > 4;
+        const showEllipsisEnd = page < totalPages - 3;
+
+        if (totalPages <= 5) {
+            for (let i = 1; i <= totalPages; i++) {
+                pages.push(i);
+            }
+        } else {
+            // Always show first page
+            pages.push(1);
+
+            if (showEllipsisStart) {
+                pages.push('...');
+            }
+
+            // Calculate range around current page
+            let start = Math.max(2, page - 1);
+            let end = Math.min(totalPages - 1, page + 1);
+
+            // Adjust if near start or end to show at least a few numbers
+            if (page < 4) {
+                end = 4;
+            }
+            if (page > totalPages - 3) {
+                start = totalPages - 3;
+            }
+
+            for (let i = start; i <= end; i++) {
+                pages.push(i);
+            }
+
+            if (showEllipsisEnd) {
+                pages.push('...');
+            }
+
+            // Always show last page
+            pages.push(totalPages);
+        }
+
+        return (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <button
+                    className="btn-secondary"
+                    disabled={page <= 1}
+                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                    style={{ opacity: page <= 1 ? 0.5 : 1, cursor: page <= 1 ? 'not-allowed' : 'pointer' }}
+                >
+                    Previous
+                </button>
+
+                {pages.map((p, idx) => (
+                    typeof p === 'number' ? (
+                        <button
+                            key={idx}
+                            className={p === page ? 'btn-primary' : 'btn-secondary'}
+                            onClick={() => setPage(p)}
+                            style={{
+                                padding: '0.25rem 0.75rem',
+                                background: p === page ? '#6366f1' : '#e5e7eb',
+                                color: p === page ? 'white' : '#374151',
+                                border: 'none',
+                                borderRadius: '4px',
+                                cursor: 'pointer'
+                            }}
+                        >
+                            {p}
+                        </button>
+                    ) : (
+                        <span key={idx} style={{ padding: '0 0.25rem' }}>...</span>
+                    )
+                ))}
+
+                <button
+                    className="btn-secondary"
+                    disabled={page >= totalPages}
+                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                    style={{ opacity: page >= totalPages ? 0.5 : 1, cursor: page >= totalPages ? 'not-allowed' : 'pointer' }}
+                >
+                    Next
+                </button>
+            </div>
+        );
+    };
+
     const handleLogout = () => {
         localStorage.removeItem('token');
         navigate('/');
@@ -292,7 +379,6 @@ const Dashboard: React.FC = () => {
     return (
         <div className="dashboard-container">
             <div className="header">
-                <h2>Dashboard</h2>
                 <h2>Dashboard</h2>
                 <div style={{ display: 'flex', alignItems: 'center' }}>
                     <button className="btn-secondary" style={{ marginRight: '1rem', background: '#e5e7eb', color: '#374151', border: '1px solid #d1d5db' }} onClick={() => setShowLogModal(true)}>System Logs</button>
@@ -353,24 +439,7 @@ const Dashboard: React.FC = () => {
                             <button className="btn-danger" onClick={handleBulkDelete}>Delete Selected ({selectedFiles.size})</button>
                         )}
                     </div>
-                    <div>
-                        <button
-                            className="btn-secondary"
-                            disabled={page <= 1}
-                            onClick={() => setPage(p => Math.max(1, p - 1))}
-                            style={{ marginRight: '0.5rem', opacity: page <= 1 ? 0.5 : 1, cursor: page <= 1 ? 'not-allowed' : 'pointer' }}
-                        >
-                            Previous
-                        </button>
-                        <button
-                            className="btn-secondary"
-                            disabled={page >= totalPages}
-                            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                            style={{ opacity: page >= totalPages ? 0.5 : 1, cursor: page >= totalPages ? 'not-allowed' : 'pointer' }}
-                        >
-                            Next
-                        </button>
-                    </div>
+                    {renderPagination()}
                 </div>
 
                 <table>
@@ -424,22 +493,7 @@ const Dashboard: React.FC = () => {
                     {selectedFiles.size > 0 && (
                         <button className="btn-danger" onClick={handleBulkDelete}>Delete Selected ({selectedFiles.size})</button>
                     )}
-                    <button
-                        className="btn-secondary"
-                        disabled={page <= 1}
-                        onClick={() => setPage(p => Math.max(1, p - 1))}
-                        style={{ marginRight: '0.5rem', opacity: page <= 1 ? 0.5 : 1, cursor: page <= 1 ? 'not-allowed' : 'pointer' }}
-                    >
-                        Previous
-                    </button>
-                    <button
-                        className="btn-secondary"
-                        disabled={page >= totalPages}
-                        onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                        style={{ opacity: page >= totalPages ? 0.5 : 1, cursor: page >= totalPages ? 'not-allowed' : 'pointer' }}
-                    >
-                        Next
-                    </button>
+                    {renderPagination()}
                 </div>
             </div>
 
