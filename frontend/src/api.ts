@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const getBaseUrl = () => {
-    return (localStorage.getItem('backend_url') || 'http://127.0.0.1:8000').replace(/\/$/, '');
+    return (localStorage.getItem('backend_url') || 'http://127.0.0.1:8001').replace(/\/$/, '');
 }
 
 const api = axios.create({
